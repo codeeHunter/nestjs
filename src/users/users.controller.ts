@@ -6,10 +6,10 @@ import {
   UseGuards,
   UsePipes,
 } from "@nestjs/common";
-import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
-import { Roles } from "src/auth/roles-auth.decorator";
-import { RolesGuards } from "src/auth/roles.guard";
-import { ValidationPipe } from "src/pipes/validation.pipe";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { Roles } from "../auth/roles-auth.decorator";
+import { RolesGuards } from "../auth/roles.guard";
+import { ValidationPipe } from "../pipes/validation.pipe";
 import { AddRoleDto } from "./dto/add-role.dto";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UsersService } from "./users.service";

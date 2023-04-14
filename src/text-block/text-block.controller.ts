@@ -13,9 +13,9 @@ import {
 } from "@nestjs/common";
 import { TextBlockDto } from "./dto/text-block.dto";
 import { TextBlockService } from "./text-block.service";
-import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
-import { Roles } from "src/auth/roles-auth.decorator";
-import { RolesGuards } from "src/auth/roles.guard";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { Roles } from "../auth/roles-auth.decorator";
+import { RolesGuards } from "../auth/roles.guard";
 import { Query, UploadedFiles, UsePipes } from "@nestjs/common/decorators";
 import { FilesInterceptor } from "@nestjs/platform-express";
 
@@ -26,7 +26,7 @@ export class TextBlockController {
   @UseGuards(RolesGuards, JwtAuthGuard)
   @Post()
   @Roles("admin")
-  @UseInterceptors(FilesInterceptor("images"))
+  @UseInterceptors(FilesInterceptor("images")) 
   @UsePipes(ValidationPipe)
   async create(
     @Body() textBlockDto: TextBlockDto,
@@ -52,12 +52,14 @@ export class TextBlockController {
 
   @Put(":id")
   @UseGuards(RolesGuards, JwtAuthGuard)
+  @UseInterceptors(FilesInterceptor("images")) 
   @Roles("admin")
   async editBlock(
     @Param("id") id: number,
+    @UploadedFiles() images: string,
     @Body() textBlock: TextBlockDto,
   ) {
-    return await this.textBlockController.editBlock(id, textBlock);
+    return await this.textBlockController.editBlock(id, images, textBlock);
   }
 
   @Delete(":id")

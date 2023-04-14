@@ -4,6 +4,7 @@ import { HttpException } from "@nestjs/common/exceptions";
 import { InjectModel } from "@nestjs/sequelize";
 import * as fs from "fs";
 import * as path from "path";
+import { Op } from "sequelize";
 import * as uuid from "uuid";
 import { Files } from "./files.model";
 
@@ -14,13 +15,13 @@ export class FilesService {
   async createFile(files): Promise<string> {
     try {
       let fileNames = "";
-      files.forEach((file) => {
+      files.forEach((file, index) => {
         const fileName = uuid.v4() + ".jpg";
         fileNames += fileName + " ";
         const filePath = path.resolve(__dirname, "..", "static");
 
         if (!fs.existsSync(filePath)) {
-          fs.mkdirSync(filePath, { recursive: true });
+          fs.mkdirSync(filePath);
         }
 
         fs.writeFileSync(path.join(filePath, fileName), file.buffer);
@@ -36,36 +37,56 @@ export class FilesService {
   }
 
   async create(imageInfo, files) {
-    const image = await this.createFile(files);
     const infoImage = await this.files.create({
       ...imageInfo,
-      images: image
+      images: files,
     });
 
     return infoImage;
   }
 
-  async overwrite(files) {
+  async deleteImages(images: string) {
     try {
-      let fileNames = "";
-      files.forEach((file) => {
-        const fileName = uuid.v4() + ".jpg";
-        fileNames += fileName + " ";
-        const filePath = path.resolve(__dirname, "..", "static");
+      const photos = images.split(" ").filter((item) => item);
 
-        if (!fs.existsSync(filePath)) {
-          fs.mkdirSync(filePath, { recursive: true });
-        }
-
-        fs.writeFileSync(path.join(filePath, fileName), file.buffer);
+      photos.map((photo) => {
+        const filePath = path.join(__dirname, "..", "static", photo);
+        fs.unlinkSync(filePath);
       });
-
-      return fileNames;
-    } catch (error) {
+    } catch (e) {
       throw new HttpException(
-        "Произошла ошибка при записи файла",
+        "Произошла при удаление файла",
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  async deleteUnusedFiles(): Promise<Files[]> {
+    const currentTime = new Date();
+    const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000); // Один час назад
+
+    // Получаем все записи, удовлетворяющие условиям
+    const filesToDelete = await this.files.findAll({
+      where: {
+        [Op.or]: [
+          {
+            createdAt: {
+              [Op.lte]: oneHourAgo,
+            },
+          },
+          {
+            essenceId: null,
+            essenceTable: null,
+          },
+        ],
+      },
+    });
+
+    // Удаляем файлы
+    for (const file of filesToDelete) {
+      await file.destroy();
+    }
+
+    return filesToDelete;
   }
 }

@@ -22,20 +22,11 @@ export class FilesController {
   @Post()
   @UseInterceptors(FilesInterceptor("images"))
   async create(@Body() imageInfo, @UploadedFiles() images) {
-    console.log(imageInfo, images)
     return await this.filesRepository.create(imageInfo, images);
   }
 
   @Delete("unused")
-  async deleteUnused(): Promise<void> {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    await Files.destroy({
-      where: {
-        createdAt: {
-          [Op.lt]: oneHourAgo,
-        },
-        [Op.and]: [{ essenceTable: null }, { essenceId: null }],
-      },
-    });
+  async deleteUnused(): Promise<Files[]> {
+    return await this.filesRepository.deleteUnusedFiles();
   }
 }

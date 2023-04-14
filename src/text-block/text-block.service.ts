@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/sequelize";
-import { FilesService } from "src/files/files.service";
+import { FilesService } from "../files/files.service";
 import { TextBlockDto } from "./dto/text-block.dto";
 import { TextBlock } from "./text-block.model";
 
@@ -24,7 +24,7 @@ export class TextBlockService {
         essenceTable: "text-block",
         essenceId: textBlock.id,
       },
-      images
+      fileName
     );
 
     return textBlock;
@@ -60,20 +60,54 @@ export class TextBlockService {
     );
   }
 
-  async editBlock(id: number, textBlock: TextBlockDto) {
-    const block = await this.textBlockRepository.update(
-      { ...textBlock },
-      {
-        where: { id },
-      }
-    );
+  async editBlock(id: number, images: string, textBlock: TextBlockDto) {
+    const imagesPrev = await this.textBlockRepository.findByPk(id);
+    let imagesPrevious;
 
-    if (block[0] != 0) return { data: block, message: "Успешно изменен" };
+    if (imagesPrev) {
+      imagesPrevious = imagesPrev.dataValues.images;
+    } else {
+      throw new HttpException(
+        "Такого поста не существует",
+        HttpStatus.BAD_REQUEST
+      );
+    }
 
-    throw new HttpException(
-      "Такого поста не существует",
-      HttpStatus.BAD_REQUEST
-    );
+    let filesName = "";
+
+    if (images.length > 0) {
+      this.fileService.deleteImages(imagesPrevious);
+      filesName = await this.fileService.createFile(images);
+    }
+
+    let updatedPost;
+
+    if (images.length > 0) {
+      updatedPost = await this.textBlockRepository.update(
+        { ...textBlock, images: filesName },
+        {
+          where: { id },
+          returning: true,
+        }
+      );
+    } else {
+      updatedPost = await this.textBlockRepository.update(
+        { ...textBlock },
+        {
+          where: { id },
+          returning: true,
+        }
+      );
+    }
+
+    if (updatedPost === 0) {
+      throw new HttpException(
+        "Такого поста не существует",
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
+    return updatedPost[1][0].dataValues;
   }
 
   async deleteBlock(id: number) {
